@@ -1,11 +1,13 @@
 # ghpkg
 
-`ghpkg` is a lightweight GitHub-based package manager written in V.  
-It lets you install and manage repositories as packages directly from GitHub.
+`ghpkg` is a lightweight package manager that installs software directly from GitHub repositories using a simple JSON mapping system.
 
-## Usage
-# currently added
-ghpkg -S <package>   # Install package
-# to be added
-ghpkg -R <package>   # Remove package
-ghpkg -L             # List installed packages
+## Features
+- Simple JSON-based package list
+- Installs packages straight from GitHub
+- Cross-platform build support
+- Minimal and fast
+
+## Example
+```bash
+ghpkg -S BCB
