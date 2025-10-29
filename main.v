@@ -15,6 +15,7 @@ struct Ghpkg {
   name          string
   version       string
   description   string
+  build         string
   dependencies  []string
   os            []string
 }
@@ -99,7 +100,6 @@ fn main()
   } $else {
     eprintln("Error: OS not supported")
   }
-  mut db_path := "~/.config/ghpkg/db.json"
   db_path = if db_path.starts_with('~') {
     os.getenv('HOME') + db_path[1..]
   } else {
@@ -154,8 +154,6 @@ fn main()
     return
   }
 
-  // Add name, version, and description to db.json
-  println(db_json.name)
-  println(db_json.version)
-  println(db_json.description)
+  println("Building...")
+  os.system(ghpkg_json.build)
 }
