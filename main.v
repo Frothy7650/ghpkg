@@ -12,12 +12,17 @@ struct Registry {
 }
 
 struct Ghpkg {
+  name          string
+  version       string
+  description   string
+  dependencies  []string
+  os            []string
+}
+
+struct Db {
   name        string
   version     string
   description string
-  repo        string
-  language    string
-  os          []string
 }
 
 fn main()
@@ -82,7 +87,23 @@ fn main()
   } $else $if macos {
     pkg_path = '/tmp/'
   } $else {
-    pkg_path = '/tmp/'
+    eprintln("Error: OS not supported")
+  }
+  mut db_path := ''
+  $if windows {
+    db_path = ''
+  } $else $if linux {
+    db_path = "~/.config/ghpkg/db.json"
+  } $else $if macos {
+    db_path = "~/.config/ghpkg/db.json"
+  } $else {
+    eprintln("Error: OS not supported")
+  }
+  mut db_path := "~/.config/ghpkg/db.json"
+  db_path = if db_path.starts_with('~') {
+    os.getenv('HOME') + db_path[1..]
+  } else {
+    db_path
   }
 
   // Clone repo
@@ -99,6 +120,42 @@ fn main()
     eprintln('Invalid JSON: $err')
     return
   }
-  // Check .ghpkg
-  println(os.user_os())
+  // Check .ghpkg OS
+  current_os := os.user_os()
+  mut supported := false
+  for pkg_os in ghpkg_json.os {
+    if pkg_os == current_os {
+      supported = true
+      break
+    }
+  }
+  if !supported {
+    eprintln("This package does not support your OS: $current_os")
+    return
+  }
+
+  // Check .ghpkg dependencies
+  for dep in ghpkg_json.dependencies {
+    res := os.execute("which $dep")
+    if res.exit_code != 0 {
+      eprintln("Dependency '$dep' is missing")
+    }
+  }
+
+  // Parse db.json as string
+  db_text := os.read_file(db_path) or {
+    eprintln("Invalid db: $err")
+    return
+  }
+
+  // Decode db.json as JSON
+  db_json := json.decode(Db, db_text) or {
+    eprintln("Invalid DB: $err")
+    return
+  }
+
+  // Add name, version, and description to db.json
+  println(db_json.name)
+  println(db_json.version)
+  println(db_json.description)
 }
