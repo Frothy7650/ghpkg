@@ -28,22 +28,27 @@ struct Db {
 
 fn main()
 {
-  // Arg handling
   args := os.args
-  mut pkg_name := ''
+  if args.len < 2 {
+    eprintln('No arguments provided')
+    return
+  }
 
-  // Get pkgname/s
+  // Check for -S flag
   for i, arg in args {
     if arg == '-S' && i + 1 < args.len {
-      pkg_name = args[i+1]
+      install_package(args[i+1])
+      return
     }
   }
 
-  // Handle no pkg specified
-  if pkg_name == '' {
-    eprintln('No package specified')
-    return
-  }
+  eprintln('No valid flag provided')
+}
+
+// Install package function
+fn install_package(pkg_name_imut string)
+{
+  mut pkg_name := pkg_name_imut
   println("Installing package $pkg_name")
 
   // Import pkglist
@@ -73,13 +78,12 @@ fn main()
     }
   }
 
-  // Handle pkg_exists
   if !pkg_exists {
     println('Package "$pkg_name" not found in registry')
     return
   }
 
-  // Check OS
+  // Determine paths
   mut pkg_path := ''
   $if windows {
     pkg_path = os.join_path(os.temp_dir(), 'ghpkg')
@@ -89,7 +93,9 @@ fn main()
     pkg_path = '/tmp/'
   } $else {
     eprintln("Error: OS not supported")
+    return
   }
+
   mut db_path := ''
   $if windows {
     db_path = ''
@@ -99,7 +105,9 @@ fn main()
     db_path = "~/.config/ghpkg/db.json"
   } $else {
     eprintln("Error: OS not supported")
+    return
   }
+
   db_path = if db_path.starts_with('~') {
     os.getenv('HOME') + db_path[1..]
   } else {
@@ -109,18 +117,18 @@ fn main()
   // Clone repo
   os.system("git clone $pkg_url $pkg_path$pkg_name")
 
-  // Parse .ghpkg into string
+  // Parse .ghpkg file
   ghpkg_file := os.read_file("$pkg_path$pkg_name/.ghpkg") or {
     eprintln('Could not read file: $err')
     return
   }
 
-  // Decode .ghpkg as JSON
   ghpkg_json := json.decode(Ghpkg, ghpkg_file) or {
     eprintln('Invalid JSON: $err')
     return
   }
-  // Check .ghpkg OS
+
+  // Check OS compatibility
   current_os := os.user_os()
   mut supported := false
   for pkg_os in ghpkg_json.os {
@@ -129,12 +137,13 @@ fn main()
       break
     }
   }
+
   if !supported {
     eprintln("This package does not support your OS: $current_os")
     return
   }
 
-  // Check .ghpkg dependencies
+  // Check dependencies
   for dep in ghpkg_json.dependencies {
     res := os.execute("which $dep")
     if res.exit_code != 0 {
@@ -145,7 +154,7 @@ fn main()
   // Build
   println("Building...")
   os.system(ghpkg_json.build)
-  
+
   // Move binary to /usr/local/bin/
   os.system("sudo mv $pkg_path$pkg_name/$pkg_name /usr/local/bin/$pkg_name")
   println("Package built and moved to /usr/local/bin/")

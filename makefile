@@ -8,3 +8,5 @@ macos:
 	v -os macos main.v -o main.app
 clean:
 	rm -rf *.bin *.exe
+install:
+	sudo mv ./main.bin /usr/local/bin/ghpkg
