@@ -110,7 +110,7 @@ fn main()
   os.system("git clone $pkg_url $pkg_path$pkg_name")
 
   // Parse .ghpkg into string
-  ghpkg_file := os.read_file("/tmp/BCB/.ghpkg") or {
+  ghpkg_file := os.read_file("$pkg_path$pkg_name/.ghpkg") or {
     eprintln('Could not read file: $err')
     return
   }
@@ -142,18 +142,11 @@ fn main()
     }
   }
 
-  // Parse db.json as string
-  db_text := os.read_file(db_path) or {
-    eprintln("Invalid db: $err")
-    return
-  }
-
-  // Decode db.json as JSON
-  db_json := json.decode(Db, db_text) or {
-    eprintln("Invalid DB: $err")
-    return
-  }
-
+  // Build
   println("Building...")
   os.system(ghpkg_json.build)
+  
+  // Move binary to /usr/local/bin/
+  os.system("sudo mv $pkg_path$pkg_name/$pkg_name /usr/local/bin/$pkg_name")
+  println("Package built and moved to /usr/local/bin/")
 }
