@@ -126,7 +126,7 @@ fn install_package(pkg_name_imut string)
   }
 
   // Clone repo
-  os.system("git clone $pkg_url $pkg_path$pkg_name")
+  os.system("git clone $pkg_url ${os.join_path(pkg_path, pkg_name)}")
 
   // Parse .ghpkg file
   ghpkg_file := os.read_file("$pkg_path$pkg_name/.ghpkg") or {
@@ -167,9 +167,37 @@ fn install_package(pkg_name_imut string)
   println("Building...")
   os.system(ghpkg_json.build)
 
-  // Move binary to /usr/local/bin/
-  os.system("sudo mv $pkg_path$pkg_name/$pkg_name /usr/local/bin/$pkg_name")
-  println("Package built and moved to /usr/local/bin/")
+  // -- Move binary to PATHed location --
+  mut bin_target := ''
+  $if linux || macos {
+    bin_target = '/usr/local/bin/' + pkg_name
+  } $else $if windows {
+    // Use a local Programs folder in %LOCALAPPDATA%
+    local_appdata := os.getenv('LOCALAPPDATA')
+    if local_appdata == '' {
+      eprintln('Could not detect LOCALAPPDATA, using C:\\Temp')
+      bin_target = 'C:\\Temp\\' + pkg_name + '.exe'
+    } else {
+      bin_target = os.join_path(local_appdata, 'ghpkg', 'bin', pkg_name + '.exe')
+      // Ensure the folder exists
+      os.mkdir_all(os.dir(bin_target)) or {
+        eprintln('Failed to create target folder: $err')
+        return
+      }
+      }
+  }
+
+  // Move or copy binary
+  $if linux || macos {
+    os.system('sudo mv $pkg_path$pkg_name/$pkg_name $bin_target')
+  } $else $if windows {
+    os.copy_file('$pkg_path$pkg_name\\$pkg_name.exe', bin_target) or {
+      eprintln('Failed to copy binary: $err')
+      return
+    }
+  }
+
+  println('Package built and moved to $bin_target')
 
   // Parse db.json as db_raw
   db_raw_in := os.read_file(db_path) or {
@@ -182,7 +210,7 @@ fn install_package(pkg_name_imut string)
     eprintln("Could not decode JSON: $err")
     return
   }
-  // Debug writ testing, REMOVE
+  // Append name, version, and description from .ghpkg to db_json
   db_json << Db{
     name: ghpkg_json.name
     version: ghpkg_json.version
@@ -190,7 +218,7 @@ fn install_package(pkg_name_imut string)
   }
 
   // Encode db_json as db_raw_out
-  db_raw_out := json.encode(db_json)
+  db_raw_out := json.encode_pretty(db_json)
 
   // Write db_raw_out to db_path
   os.write_file(db_path, db_raw_out) or {
