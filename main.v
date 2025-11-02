@@ -99,16 +99,19 @@ fn install_package(pkg_name_imut string)
     return
   }
 
-  mut db_path := ''
-  $if windows {
-    db_path = os.getenv('APPDATA') + '\\ghpkg\\db.json'
-  } $else $if linux {
-    db_path = os.getenv('HOME') + '/.config/ghpkg/db.json'
-  } $else $if macos {
-    db_path = os.getenv('HOME') + '/.config/ghpkg/db.json'
-  } $else {
-    eprintln('OS not supported')
+  mut user_home := os.getenv('HOME')
+  sudo_user := os.getenv('SUDO_USER')
+  $if linux || macos {
+    if sudo_user != '' {
+        user_home = '/home/' + sudo_user
+    }
+  } $else $if windows {
+    user_home = os.getenv('APPDATA') or { os.user_home() }
   }
+
+  // Join db_path together
+  mut db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+  println("DB path: $db_path")
 
   db_path = if db_path.starts_with('~') {
     os.getenv('HOME') + db_path[1..]
@@ -125,6 +128,7 @@ fn install_package(pkg_name_imut string)
     return
   }
 
+  // Decode ghpkg_file as ghpkg_json
   ghpkg_json := json.decode(Ghpkg, ghpkg_file) or {
     eprintln('Invalid JSON: $err')
     return
@@ -168,17 +172,21 @@ fn install_package(pkg_name_imut string)
   }
 
   // Parse db.json as db_json
-  mut db_json := json.decode(Db, db_raw_in) or {
+  mut db_json := json.decode([]Db, db_raw_in) or {
     eprintln("Could not decode JSON: $err")
     return
   }
+  // Debug writ testing, REMOVE
+  db_json << Db{
+    name: ghpkg_json.name
+    version: ghpkg_json.version
+    description: ghpkg_json.description
+  }
 
-  db_json.name = "BCB"
-  db_json.version = "1.0.0"
-  db_json.description = "Basic ChatBot"
-
+  // Encode db_json as db_raw_out
   db_raw_out := json.encode(db_json)
 
+  // Write db_raw_out to db_path
   os.write_file(db_path, db_raw_out) or {
     eprintln("Failed to write to DB: $err")
     return
