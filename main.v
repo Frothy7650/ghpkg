@@ -191,11 +191,9 @@ fn install_package(pkg_name_imut string)
   $if linux || macos {
     os.system('sudo mv $pkg_path$pkg_name/$pkg_name $bin_target')
   } $else $if windows {
-    os.copy_file('$pkg_path$pkg_name\\$pkg_name.exe', bin_target) or {
-      eprintln('Failed to copy binary: $err')
-      return
-    }
+    os.system('copy "${pkg_path}${pkg_name}\\${pkg_name}.exe" "${bin_target}\\${pkg_name}.exe"')
   }
+
 
   println('Package built and moved to $bin_target')
 
