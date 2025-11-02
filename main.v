@@ -99,14 +99,20 @@ fn install_package(pkg_name_imut string)
     return
   }
 
-  mut user_home := os.getenv('HOME')
-  sudo_user := os.getenv('SUDO_USER')
+  mut user_home := ''
   $if linux || macos {
+    sudo_user := os.getenv('SUDO_USER')
     if sudo_user != '' {
-        user_home = '/home/' + sudo_user
+      user_home = '/home/' + sudo_user
+    } else {
+      user_home = os.getenv('HOME')
     }
   } $else $if windows {
-    user_home = os.getenv('APPDATA') or { os.user_home() }
+    user_home = os.getenv('APPDATA')
+    if user_home == '' {
+      // fallback to default Windows profile
+      user_home = 'C:\\Users\\Default'
+    }
   }
 
   // Join db_path together
