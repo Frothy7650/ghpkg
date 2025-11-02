@@ -22,6 +22,7 @@ struct Ghpkg {
 }
 
 struct Db {
+mut:
   name        string
   version     string
   description string
@@ -167,7 +168,7 @@ fn install_package(pkg_name_imut string)
   }
 
   // Parse db.json as db_json
-  mut db_json := json.decode(Db, db_raw) or {
+  mut db_json := json.decode(Db, db_raw_in) or {
     eprintln("Could not decode JSON: $err")
     return
   }
