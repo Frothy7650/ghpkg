@@ -2,6 +2,7 @@ import net.http
 import json
 import os
 
+// -- Structs --
 struct Project {
   name string
   url  string
@@ -26,6 +27,7 @@ struct Db {
   description string
 }
 
+// -- Main function --
 fn main()
 {
   args := os.args
@@ -45,7 +47,7 @@ fn main()
   eprintln('No valid flag provided')
 }
 
-// Install package function
+// -- install_package function
 fn install_package(pkg_name_imut string)
 {
   mut pkg_name := pkg_name_imut
@@ -98,14 +100,13 @@ fn install_package(pkg_name_imut string)
 
   mut db_path := ''
   $if windows {
-    db_path = ''
+    db_path = os.getenv('APPDATA') + '\\ghpkg\\db.json'
   } $else $if linux {
-    db_path = "~/.config/ghpkg/db.json"
+    db_path = os.getenv('HOME') + '/.config/ghpkg/db.json'
   } $else $if macos {
-    db_path = "~/.config/ghpkg/db.json"
+    db_path = os.getenv('HOME') + '/.config/ghpkg/db.json'
   } $else {
-    eprintln("Error: OS not supported")
-    return
+    eprintln('OS not supported')
   }
 
   db_path = if db_path.starts_with('~') {
@@ -158,4 +159,29 @@ fn install_package(pkg_name_imut string)
   // Move binary to /usr/local/bin/
   os.system("sudo mv $pkg_path$pkg_name/$pkg_name /usr/local/bin/$pkg_name")
   println("Package built and moved to /usr/local/bin/")
+
+  // Parse db.json as db_raw
+  db_raw_in := os.read_file(db_path) or {
+    eprintln("Could not find db: $err")
+    return
+  }
+
+  // Parse db.json as db_json
+  mut db_json := json.decode(Db, db_raw) or {
+    eprintln("Could not decode JSON: $err")
+    return
+  }
+
+  db_json.name = "BCB"
+  db_json.version = "1.0.0"
+  db_json.description = "Basic ChatBot"
+
+  db_raw_out := json.encode(db_json)
+
+  os.write_file(db_path, db_raw_out) or {
+    eprintln("Failed to write to DB: $err")
+    return
+  }
 }
+
+// -- remove_package function --
