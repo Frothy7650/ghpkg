@@ -88,8 +88,8 @@ fn install_package(pkg_name_imut string)
     return
   }
 
-  // Determine paths 
-  mut pkg_path := '' 
+  // Determine paths
+  mut pkg_path := ''
   $if windows {
     pkg_path = os.join_path(os.temp_dir(), 'ghpkg')
   } $else $if linux {
@@ -101,7 +101,7 @@ fn install_package(pkg_name_imut string)
     return
   }
 
-  // Do not ever touch this 
+  // Do not ever touch this
   mut user_home := ''
   $if linux || macos {
     sudo_user := os.getenv('SUDO_USER')
@@ -113,7 +113,7 @@ fn install_package(pkg_name_imut string)
   } $else $if windows {
     user_home = os.getenv('APPDATA')
     if user_home == '' {
-      // fallback to default Windows profile 
+      // fallback to default Windows profile
       user_home = 'C:\\Users\\Default'
     }
   }
@@ -196,7 +196,7 @@ fn install_package(pkg_name_imut string)
   }
   println('Package built and moved to $bin_target')
 
-  // Parse db.json as db_raw 
+  // Parse db.json as db_raw
   db_raw_in := os.read_file(db_path) or {
     eprintln("Could not find db: $err") 
     return
@@ -244,6 +244,33 @@ fn remove_package(pkg_name_imut string)
       user_home = 'C:\\Users\\Default'
     }
   }
+  
+  // Find db.json
   db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
-  println(db_path)
+
+  // Parse db.json as db_raw_in
+  db_raw_in := os.read_file(db_path) or {
+    eprintln("Could not open db.json: $err")
+    return
+  }
+
+  // Parse db_raw_in as db_json
+  mut db_json := json.decode([]Db, db_raw_in) or {
+    eprintln("Failed to parse JSON: $err")
+    return
+  }
+
+  // Search for pkg_name_imut in db_json
+  db_json = db_json.filter(it.name != pkg_name_imut)
+
+  // Encode db.json as db_raw_out
+  db_raw_out := json.encode_pretty(db_json)
+
+  // Save db.json
+  os.write_file(db_path, db_raw_out) or {
+    eprintln("Failed to save db.json: $err")
+    return
+  }
+
+  println("Removed entry from db.json")
 }
