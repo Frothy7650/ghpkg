@@ -43,6 +43,7 @@ fn main()
     args[1] == "-S" { install_package(args[2]) }
     args[1] == "-R" { remove_package(args[2]) }
     args[1] == "-Ql" { list_local() }
+    args[1] == "-Qg" { list_global() }
     else {
       eprintln("No valid flag found, exiting...")
       return
@@ -275,7 +276,7 @@ fn remove_package(pkg_name_imut string)
     return
   }
 
-  // Parse db_raw_in as db_json
+  // Parse db_raw_in as db_jsowwwwwwwwwwwwwwwwwwn
   mut db_json := json.decode([]Db, db_raw_in) or {
     eprintln("Failed to parse JSON: $err")
     return
@@ -339,5 +340,28 @@ fn list_local()
   // List db_json
   for entry in db_json {
     println("${entry.name} ${entry.version} - ${entry.description}")
+  }
+}
+
+fn list_global()
+{
+  println("Listing all packages...")
+
+  // Import pkglist
+  pkglist_url := "https://raw.githubusercontent.com/Frothy7650/ghpkgList/master/pkglist.json"
+  pkglist_raw := http.get(pkglist_url) or {
+    eprintln("Failed to fetch JSON: $err")
+    return
+  }
+
+  // Decode pkglist_raw
+  pkglist_json := json.decode(Registry, pkglist_raw.body) or {
+    eprintln("Failed to fetch JSON: $err")
+    return
+  }
+
+  // List pkglist
+  for project in pkglist_json.projects {
+    println("${project.name} - ${project.url}")
   }
 }

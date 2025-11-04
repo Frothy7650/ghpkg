@@ -1,3 +1,14 @@
-Indev package manager, using github repos
-Commands: -S(Sync), -R(Remove), -Q(-Ql for local, -Qg for global).
--Q = search, -Ql = list local, -Qg = list global
+# GHPKG Client
+
+**In-development package manager using GitHub repositories.**
+
+## Commands
+
+| Flag | Description |
+|------|-------------|
+| `-S <package>` | Sync / install a package |
+| `-R <package>` | Remove a package |
+| `-Q` | Search packages |
+| `-Ql` | List locally installed packages |
+| `-Qg` | List globally available packages |
+
