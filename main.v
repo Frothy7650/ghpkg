@@ -42,7 +42,7 @@ fn main()
   match true {
     args[1] == "-S" { install_package(args[2]) }
     args[1] == "-R" { remove_package(args[2]) }
-    // -Q
+    args[1] == "-Q" { search_packages(args[2]) }
     args[1] == "-L" { list_local() }
     args[1] == "-Lg" { list_global() }
     // -U
@@ -366,4 +366,9 @@ fn list_global()
   for project in pkglist_json.projects {
     println("${project.name} - ${project.url}")
   }
+}
+
+fn search_packages(pkg_name_imut string)
+{
+  println("Ina minute")
 }
