@@ -42,8 +42,10 @@ fn main()
   match true {
     args[1] == "-S" { install_package(args[2]) }
     args[1] == "-R" { remove_package(args[2]) }
-    args[1] == "-Ql" { list_local() }
-    args[1] == "-Qg" { list_global() }
+    // -Q
+    args[1] == "-L" { list_local() }
+    args[1] == "-Lg" { list_global() }
+    // -U
     else {
       eprintln("No valid flag found, exiting...")
       return
