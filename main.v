@@ -168,12 +168,12 @@ fn install_package(pkg_name_imut string)
   println("Building...")
   os.system(ghpkg_json.build)
 
-  // Move binary to PATHed location 
+  // Move binary to PATHed location
   mut bin_target := ''
   $if linux || macos {
     bin_target = '/usr/local/bin/' + pkg_name
   } $else $if windows {
-    // Use a local Programs folder in %LOCALAPPDATA% 
+    // Use a local Programs folder in %LOCALAPPDATA%
     local_appdata := os.getenv('LOCALAPPDATA')
     if local_appdata == '' {
       eprintln('Could not detect LOCALAPPDATA, using C:\\Temp')
@@ -244,7 +244,27 @@ fn remove_package(pkg_name_imut string)
       user_home = 'C:\\Users\\Default'
     }
   }
-  
+
+  // Find binary location
+  mut bin_target := ''
+  $if linux || macos {
+    bin_target = '/usr/local/bin/' + pkg_name
+  } $else $if windows {
+    // Use a local Programs folder in %LOCALAPPDATA% 
+    local_appdata := os.getenv('LOCALAPPDATA')
+    if local_appdata == '' {
+      eprintln('Could not detect LOCALAPPDATA, using C:\\Temp')
+      bin_target = 'C:\\Temp\\' + pkg_name + '.exe'
+    } else {
+      bin_target = os.join_path(local_appdata, 'ghpkg', 'bin', pkg_name + '.exe')
+      // Ensure the folder exists
+      os.mkdir_all(os.dir(bin_target)) or {
+        eprintln('Failed to create target folder: $err')
+        return
+      }
+    }
+  }
+
   // Find db.json
   db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
 
@@ -273,4 +293,8 @@ fn remove_package(pkg_name_imut string)
   }
 
   println("Removed entry from db.json")
+
+  // Remove binary
+  os.system("rm ${bin_target}")
+  println("Removed binary from ${bin_target}")
 }
