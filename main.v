@@ -43,7 +43,6 @@ fn main()
     args[1] == "-S" { install_package(args[2]) }
     args[1] == "-R" { remove_package(args[2]) }
     args[1] == "-Ql" { list_local() }
-  }
     else {
       eprintln("No valid flag found, exiting...")
       return
@@ -302,7 +301,7 @@ fn remove_package(pkg_name_imut string)
 }
 
 // Search locally
-fn search_local()
+fn list_local()
 {
   println("Listing all packages...")
   // Do not ever touch this
@@ -338,5 +337,7 @@ fn search_local()
   }
 
   // List db_json
-
+  for entry in db_json {
+    println("${entry.name} ${entry.version} - ${entry.description}")
+  }
 }
