@@ -248,15 +248,15 @@ fn remove_package(pkg_name_imut string)
   // Find binary location
   mut bin_target := ''
   $if linux || macos {
-    bin_target = '/usr/local/bin/' + pkg_name
+    bin_target = '/usr/local/bin/' + pkg_name_imut
   } $else $if windows {
     // Use a local Programs folder in %LOCALAPPDATA% 
     local_appdata := os.getenv('LOCALAPPDATA')
     if local_appdata == '' {
       eprintln('Could not detect LOCALAPPDATA, using C:\\Temp')
-      bin_target = 'C:\\Temp\\' + pkg_name + '.exe'
+      bin_target = 'C:\\Temp\\' + pkg_name_imut + '.exe'
     } else {
-      bin_target = os.join_path(local_appdata, 'ghpkg', 'bin', pkg_name + '.exe')
+      bin_target = os.join_path(local_appdata, 'ghpkg', 'bin', pkg_name_imut + '.exe')
       // Ensure the folder exists
       os.mkdir_all(os.dir(bin_target)) or {
         eprintln('Failed to create target folder: $err')
