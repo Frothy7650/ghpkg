@@ -42,6 +42,8 @@ fn main()
   match true {
     args[1] == "-S" { install_package(args[2]) }
     args[1] == "-R" { remove_package(args[2]) }
+    args[1] == "-Ql" { list_local() }
+  }
     else {
       eprintln("No valid flag found, exiting...")
       return
@@ -69,7 +71,7 @@ fn install_package(pkg_name_imut string)
     return
   }
 
-  // Search registry for pkg_name 
+  // Search registry for pkg_name
   mut pkg_exists := false
   mut pkg_url := ''
   for project in registry.projects {
@@ -297,4 +299,44 @@ fn remove_package(pkg_name_imut string)
   // Remove binary
   os.system("rm ${bin_target}")
   println("Removed binary from ${bin_target}")
+}
+
+// Search locally
+fn search_local()
+{
+  println("Listing all packages...")
+  // Do not ever touch this
+  mut user_home := ''
+  $if linux || macos {
+    sudo_user := os.getenv('SUDO_USER')
+    if sudo_user != '' {
+      user_home = '/home/' + sudo_user
+    } else {
+      user_home = os.getenv('HOME')
+    }
+  } $else $if windows {
+  user_home = os.getenv('APPDATA')
+    if user_home == '' {
+      // fallback to default Windows profile
+      user_home = 'C:\\Users\\Default'
+    }
+  }
+
+  // Find db.json location
+  db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+
+  // Parse db as db_raw
+  db_raw := os.read_file(db_path) or {
+    eprintln("Could not open db.json: $err")
+    return
+  }
+
+  // Decode db_raw as db_json
+  db_json := json.decode([]Db, db_raw) or {
+    eprintln("Failed to decode JSON: $err")
+    return
+  }
+
+  // List db_json
+
 }
