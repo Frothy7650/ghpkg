@@ -4,8 +4,9 @@ import os
 
 // Structs
 struct Project {
-  name string
-  url  string
+  name      string
+  version   string
+  url      string
 }
 
 struct Registry {
@@ -42,6 +43,7 @@ fn main() {
     args[1] == "-Q" && args.len > 2 { search_packages(args[2]) }
     args[1] == "-L" { list_local() }
     args[1] == "-Lg" { list_global() }
+    args[1] == "-U" { update() }
     else {
       eprintln("Usage:")
       println("  -S <pkg>   install package")
@@ -49,6 +51,7 @@ fn main() {
       println("  -Q <name>  search packages")
       println("  -L         list local packages")
       println("  -Lg        list global packages")
+      println("  -U         update installed packages")
       return
     }
   }
@@ -279,7 +282,7 @@ fn remove_package(pkg_name_imut string)
     return
   }
 
-  // Parse db_raw_in as db_jsowwwwwwwwwwwwwwwwwwn
+  // Parse db_raw_in as db_json
   mut db_json := json.decode([]Db, db_raw_in) or {
     eprintln("Failed to parse JSON: $err")
     return
@@ -365,7 +368,7 @@ fn list_global()
 
   // List pkglist
   for project in pkglist_json.projects {
-    println("${project.name} - ${project.url}")
+    println("${project.name} ${project.version} - ${project.url}")
   }
 }
 
@@ -382,7 +385,7 @@ fn search_packages(pkg_name_imut string)
 
   // Parse pkglist_raw as pkglist_json
   pkglist_json := json.decode(Registry, pkglist_raw.body) or {
-    eprintln("Failed to decide pkglist: $err")
+    eprintln("Failed to decode pkglist: $err")
     return
   }
 
@@ -395,6 +398,64 @@ fn search_packages(pkg_name_imut string)
 
   // Print it 
   for pkg in results {
-    println("${pkg.name} - ${pkg.url}")
+    println("${pkg.name} ${pkg.version} - ${pkg.url}")
+  }
+}
+
+// Update packages
+fn update()
+{
+  // Import pkglist
+  pkglist_url := "https://raw.githubusercontent.com/Frothy7650/ghpkgList/master/pkglist.json"
+  pkglist_raw := http.get(pkglist_url) or {
+    eprintln("Failed to fetch pkglist: $err")
+    return
+  }
+
+  // Parse pkglist_raw as pkglist_json
+  pkglist_json := json.decode(Registry, pkglist_raw.body) or {
+    eprintln("Failed to decode pkglist: $err")
+    return
+  }
+
+   // Do not ever touch this
+  mut user_home := ''
+  $if linux || macos {
+    sudo_user := os.getenv('SUDO_USER')
+    if sudo_user != '' {
+      user_home = '/home/' + sudo_user
+    } else {
+      user_home = os.getenv('HOME')
+    }
+  } $else $if windows {
+  user_home = os.getenv('APPDATA')
+    if user_home == '' {
+      // fallback to default Windows profile
+      user_home = 'C:\\Users\\Default'
+    }
+  }
+
+  // Find db.json location
+  db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+
+  // Parse db as db_raw
+  db_raw := os.read_file(db_path) or {
+    eprintln("Could not open db.json: $err")
+    return
+  }
+
+  // Decode db_raw as db_json
+  db_json := json.decode([]Db, db_raw) or {
+    eprintln("Failed to decode JSON: $err")
+    return
+  }
+
+  // Search for updates
+  for pkg in pkglist_json.projects {
+    for dbpkg in db_json {
+      if pkg.name == dbpkg.name && pkg.version != dbpkg.version {
+        println('${pkg.name} version differs: ${dbpkg.version} -> ${pkg.version}')
+      }
+    }
   }
 }
