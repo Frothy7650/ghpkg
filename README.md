@@ -8,7 +8,7 @@
 |------|------------------------------|-------|
 | `-S <package>` | Sync / install a package    | Yes   |
 | `-R <package>` | Remove a package           | Yes   |
-| `-Q`          | Search packages            | No    |
+| `-Q`          | Search packages            | Yes   |
 | `-L`         | List locally installed packages | Yes   |
 | `-Lg`         | List globally available packages | Yes   |
 | `-U <package>` | Update an installed package | No    |

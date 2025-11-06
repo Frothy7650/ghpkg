@@ -29,25 +29,26 @@ mut:
 }
 
 // Main function
-fn main()
-{
-  // Get args and exit if args < 2
-  args := os.args
-  if args.len < 2 {
+fn main() {
+    args := os.args
+    if args.len < 2 {
     eprintln('No arguments provided')
     return
   }
 
-  // Check for -S flag
   match true {
-    args[1] == "-S" { install_package(args[2]) }
-    args[1] == "-R" { remove_package(args[2]) }
-    args[1] == "-Q" { search_packages(args[2]) }
+    args[1] == "-S" && args.len > 2 { install_package(args[2]) }
+    args[1] == "-R" && args.len > 2 { remove_package(args[2]) }
+    args[1] == "-Q" && args.len > 2 { search_packages(args[2]) }
     args[1] == "-L" { list_local() }
     args[1] == "-Lg" { list_global() }
-    // -U
     else {
-      eprintln("No valid flag found, exiting...")
+      eprintln("Usage:")
+      println("  -S <pkg>   install package")
+      println("  -R <pkg>   remove package")
+      println("  -Q <name>  search packages")
+      println("  -L         list local packages")
+      println("  -Lg        list global packages")
       return
     }
   }
@@ -358,7 +359,7 @@ fn list_global()
 
   // Decode pkglist_raw
   pkglist_json := json.decode(Registry, pkglist_raw.body) or {
-    eprintln("Failed to fetch JSON: $err")
+    eprintln("Failed to fetch pkglist: $err")
     return
   }
 
@@ -370,5 +371,30 @@ fn list_global()
 
 fn search_packages(pkg_name_imut string)
 {
-  println("Ina minute")
+  println("Searching packages...")
+
+  // Import pkglist 
+  pkglist_url := "https://raw.githubusercontent.com/Frothy7650/ghpkgList/master/pkglist.json"
+  pkglist_raw := http.get(pkglist_url) or {
+    eprintln("Failed to fetch pkglist: $err")
+    return
+  }
+
+  // Parse pkglist_raw as pkglist_json
+  pkglist_json := json.decode(Registry, pkglist_raw.body) or {
+    eprintln("Failed to decide pkglist: $err")
+    return
+  }
+
+  // Search through the pkglist_json
+  results := pkglist_json.projects.filter(it.name.contains(pkg_name_imut))
+
+  if results.len == 0 {
+    println("No packages found matching '${pkg_name_imut}'")
+  }
+
+  // Print it 
+  for pkg in results {
+    println("${pkg.name} - ${pkg.url}")
+  }
 }
