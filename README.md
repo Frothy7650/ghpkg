@@ -11,5 +11,6 @@
 | `-Q`          | Search packages            | Yes   |
 | `-L`         | List locally installed packages | Yes   |
 | `-Lg`         | List globally available packages | Yes   |
-| `-U <package>` | Update an installed package | No    |
+| `-U `          | Update an installed package | No    |
+| `-C`           | Verify package existance | Yes   |
 

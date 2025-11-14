@@ -18,6 +18,7 @@ struct Ghpkg {
   version       string
   description   string
   build         string
+  binary_name   string
   dependencies  []string
   os            []string
 }
@@ -25,6 +26,7 @@ struct Ghpkg {
 struct Db {
 mut:
   name        string
+  binary_name string
   version     string
   description string
 }
@@ -44,6 +46,7 @@ fn main() {
     args[1] == "-L" { list_local() }
     args[1] == "-Lg" { list_global() }
     args[1] == "-U" { update() }
+    args[1] == "-C" { check() }
     else {
       eprintln("Usage:")
       println("  -S <pkg>   install package")
@@ -52,6 +55,7 @@ fn main() {
       println("  -L         list local packages")
       println("  -Lg        list global packages")
       println("  -U         update installed packages")
+      println("  -C         check local database against installed binaries")
       return
     }
   }
@@ -139,10 +143,13 @@ fn install_package(pkg_name_imut string)
   os.system("git clone $pkg_url ${os.join_path(pkg_path, pkg_name)}")
 
   // Parse .ghpkg file
-  ghpkg_file := os.read_file("$pkg_path$pkg_name/.ghpkg") or {
+  mut ghpkg_file := os.read_file("$pkg_path$pkg_name/.ghpkg") or {
     eprintln('Could not read file: $err')
     return
   }
+
+  // Replace $temp with actual pkg_path directory
+  ghpkg_file = ghpkg_file.replace("\$temp", pkg_path)
 
   // Decode ghpkg_file as ghpkg_json
   ghpkg_json := json.decode(Ghpkg, ghpkg_file) or {
@@ -166,7 +173,8 @@ fn install_package(pkg_name_imut string)
 
   // Check dependencies
   for dep in ghpkg_json.dependencies {
-    res := os.execute("which $dep")
+    mut res := os.Result{} // Special type for a return value
+    $if windows { res = os.execute("where $dep") } $else { res = os.execute("which $dep") }
     if res.exit_code != 0 {
       eprintln("Dependency '$dep' is missing")
     }
@@ -176,7 +184,7 @@ fn install_package(pkg_name_imut string)
   println("Building...")
   os.system(ghpkg_json.build)
 
-  // Move binary to PATHed location
+  // find binary PATHed location to move to
   mut bin_target := ''
   $if linux || macos {
     bin_target = '/usr/local/bin/' + pkg_name
@@ -198,7 +206,7 @@ fn install_package(pkg_name_imut string)
 
   // Move or copy binary 
   $if linux || macos {
-    os.system('sudo mv $pkg_path$pkg_name/$pkg_name $bin_target')
+    os.system('sudo mv $pkg_path$pkg_name/${ghpkg_json.binary_name} $bin_target')
   } $else $if windows {
     os.system('copy "${pkg_path}${pkg_name}\\${pkg_name}.exe" "${bin_target}\\${pkg_name}.exe"')
   }
@@ -219,6 +227,7 @@ fn install_package(pkg_name_imut string)
   // Append name, version, and description from .ghpkg to db_json
   db_json << Db{
     name: ghpkg_json.name
+    binary_name: ghpkg_json.binary_name
     version: ghpkg_json.version
     description: ghpkg_json.description
   }
@@ -457,5 +466,90 @@ fn update()
         println('${pkg.name} version differs: ${dbpkg.version} -> ${pkg.version}')
       }
     }
+  }
+}
+
+fn check()
+{
+  println("Checking binaries...")
+
+  // Find binary location
+  mut bin_location := ''
+  $if linux || macos {
+    bin_location = '/usr/local/bin/'
+  } $else $if windows {
+    // Use a local Programs folder in %LOCALAPPDATA% 
+    local_appdata := os.getenv('LOCALAPPDATA')
+    if local_appdata == '' {
+      eprintln('Could not detect LOCALAPPDATA, using C:\\Temp')
+      bin_location = 'C:\\Temp\\'
+    } else {
+      bin_target = os.join_path(local_appdata, 'ghpkg', 'bin')
+      // Ensure the folder exists
+      os.mkdir_all(os.dir(bin_location)) or {
+        eprintln('Failed to create target folder: $err')
+        return
+      }
+    }
+  }
+
+  // Do not ever touch this
+  mut user_home := ''
+  $if linux || macos {
+    sudo_user := os.getenv('SUDO_USER')
+    if sudo_user != '' {
+      user_home = '/home/' + sudo_user
+    } else {
+      user_home = os.getenv('HOME')
+    }
+  } $else $if windows {
+  user_home = os.getenv('APPDATA')
+    if user_home == '' {
+      // fallback to default Windows profile
+      user_home = 'C:\\Users\\Default'
+    }
+  }
+
+  // Find db.json location
+  db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+
+  // Parse db as db_raw
+  db_raw_in := os.read_file(db_path) or {
+    eprintln("Could not open db.json: $err")
+    return
+  }
+
+  // Parse db_raw as db_json
+  mut db_json := json.decode([]Db, db_raw_in) or {
+    eprintln("Failed to decode JSON: $err")
+    return
+  }
+
+  // Iterate over db_json and remove entries with missing binaries
+  mut updated_db := []Db{}  // new list to hold entries that exist
+
+  for pkg in db_json {
+    // Determine expected binary path
+    mut bin_path := ''
+    $if linux || macos {
+      bin_path = os.join_path(bin_location, pkg.binary_name)
+    } $else $if windows {
+      bin_path = os.join_path(bin_location, pkg.binary_name + '.exe')
+    }
+
+    // Check if binary exists
+    if os.exists(bin_path) {
+      updated_db << pkg  // keep this entry
+      println("${pkg.name}: binary exists at $bin_path")
+    } else {
+      println("${pkg.name}: binary missing at $bin_path, removing from db.json")
+    }
+  }
+
+  // Save updated list back to db.json
+  db_raw_out := json.encode_pretty(updated_db)
+  os.write_file(db_path, db_raw_out) or {
+    eprintln("Failed to update db.json: $err")
+    return
   }
 }
