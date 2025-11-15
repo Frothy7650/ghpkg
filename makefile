@@ -3,7 +3,7 @@ build:
 windows:
 	v -os windows main.v -o main.exe
 linux:
-	v -os linux main.v -o main.bin
+	v -os linux main.v -o ghpkg
 clean:
 	rm -rf *.bin *.exe
 install:
