@@ -1,4 +1,4 @@
-Maintainer: Evan Church frothycurve@gmail.com
+# Maintainer: Evan Church frothycurve@gmail.com
 pkgname=ghpkg
 pkgver=1.0.0
 pkgrel=1
@@ -7,17 +7,16 @@ arch=('any')
 url="https://github.com/user/ghpkg"
 license=('MIT')
 depends=('git')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/user/ghpkg/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP') # optional, for testing use 'SKIP'
+source=("git+https://github.com/Frothy7650/ghpkg.git")
+sha256sums=('SKIP')
 
 build() {
-  cd "$srcdir/$pkgname-$pkgver"
-  make linux
+  cd "$srcdir/$pkgname"
+  v -os linux -prod main.v -o ghpkg
 }
 
 package() {
-  cd "$srcdir/$pkgname-$pkgver"
-  # install files, e.g.,
+  cd "$srcdir/$pkgname"
   install -Dm755 ghpkg "$pkgdir/usr/bin/ghpkg"
   install -Dm644 db.json "$pkgdir/etc/ghpkg/db.json"
 }
