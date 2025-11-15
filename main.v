@@ -113,31 +113,14 @@ fn install_package(pkg_name_imut string)
     return
   }
 
-  // Do not ever touch this
-  mut user_home := ''
-  $if linux || macos {
-    sudo_user := os.getenv('SUDO_USER')
-    if sudo_user != '' {
-      user_home = '/home/' + sudo_user
-    } else {
-      user_home = os.getenv('HOME')
-    }
-  } $else $if windows {
-    user_home = os.getenv('APPDATA')
-    if user_home == '' {
-      // fallback to default Windows profile
-      user_home = 'C:\\Users\\Default'
-    }
-  }
-
   // Join db_path together
-  mut db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
-  println("DB path: $db_path")
-  db_path = if db_path.starts_with('~') {
-    os.getenv('HOME') + db_path[1..]
-  } else {
-    db_path
+  mut db_path := ''
+  $if windows {
+    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+  } $else {
+    db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
+  println("DB path: $db_path")
 
   // Clone repo
   os.system("git clone $pkg_url ${os.join_path(pkg_path, pkg_name)}")
@@ -245,23 +228,6 @@ fn install_package(pkg_name_imut string)
 // remove_package function
 fn remove_package(pkg_name_imut string)
 {
-  // Do not ever touch this
-  mut user_home := ''
-  $if linux || macos {
-    sudo_user := os.getenv('SUDO_USER')
-    if sudo_user != '' {
-      user_home = '/home/' + sudo_user
-    } else {
-      user_home = os.getenv('HOME')
-    }
-  } $else $if windows {
-    user_home = os.getenv('APPDATA')
-    if user_home == '' {
-      // fallback to default Windows profile
-      user_home = 'C:\\Users\\Default'
-    }
-  }
-
   // Find binary location
   mut bin_target := ''
   $if linux || macos {
@@ -282,8 +248,14 @@ fn remove_package(pkg_name_imut string)
     }
   }
 
-  // Find db.json
-  db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+  // Join db_path together
+  mut db_path := ''
+  $if windows {
+    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+  } $else {
+    db_path = os.join_path("/etc", "ghpkg", "db.json")
+  }
+    println("DB path: $db_path")
 
   // Parse db.json as db_raw_in
   db_raw_in := os.read_file(db_path) or {
@@ -320,25 +292,15 @@ fn remove_package(pkg_name_imut string)
 fn list_local()
 {
   println("Listing all packages...")
-  // Do not ever touch this
-  mut user_home := ''
-  $if linux || macos {
-    sudo_user := os.getenv('SUDO_USER')
-    if sudo_user != '' {
-      user_home = '/home/' + sudo_user
-    } else {
-      user_home = os.getenv('HOME')
-    }
-  } $else $if windows {
-  user_home = os.getenv('APPDATA')
-    if user_home == '' {
-      // fallback to default Windows profile
-      user_home = 'C:\\Users\\Default'
-    }
-  }
 
-  // Find db.json location
-  db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+  // Join db_path together
+  mut db_path := ''
+  $if windows {
+    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+  } $else {
+    db_path = os.join_path("/etc", "ghpkg", "db.json")
+  }
+  println("DB path: $db_path")
 
   // Parse db as db_raw
   db_raw := os.read_file(db_path) or {
@@ -427,25 +389,14 @@ fn update()
     return
   }
 
-   // Do not ever touch this
-  mut user_home := ''
-  $if linux || macos {
-    sudo_user := os.getenv('SUDO_USER')
-    if sudo_user != '' {
-      user_home = '/home/' + sudo_user
-    } else {
-      user_home = os.getenv('HOME')
-    }
-  } $else $if windows {
-  user_home = os.getenv('APPDATA')
-    if user_home == '' {
-      // fallback to default Windows profile
-      user_home = 'C:\\Users\\Default'
-    }
+  // Join db_path together
+  mut db_path := ''
+  $if windows {
+    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+  } $else {
+    db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
-
-  // Find db.json location
-  db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+  println("DB path: $db_path")
 
   // Parse db as db_raw
   db_raw := os.read_file(db_path) or {
@@ -493,25 +444,14 @@ fn check()
     }
   }
 
-  // Do not ever touch this
-  mut user_home := ''
-  $if linux || macos {
-    sudo_user := os.getenv('SUDO_USER')
-    if sudo_user != '' {
-      user_home = '/home/' + sudo_user
-    } else {
-      user_home = os.getenv('HOME')
-    }
-  } $else $if windows {
-  user_home = os.getenv('APPDATA')
-    if user_home == '' {
-      // fallback to default Windows profile
-      user_home = 'C:\\Users\\Default'
-    }
+  // Join db_path together
+  mut db_path := ''
+  $if windows {
+    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+  } $else {
+    db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
-
-  // Find db.json location
-  db_path := os.join_path(user_home, ".config", "ghpkg", "db.json")
+  println("DB path: $db_path")
 
   // Parse db as db_raw
   db_raw_in := os.read_file(db_path) or {
