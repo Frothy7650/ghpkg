@@ -1,6 +1,6 @@
 # GHPKG Client
 
-**In-development package manager using GitHub repositories.**
+**In-development package manager using GitHub repositories to clone and build.**
 
 ## Commands
 
