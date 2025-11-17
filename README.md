@@ -14,3 +14,5 @@
 | `-U `          | Update an installed package | No    |
 | `-C`           | Verify package existance | Yes   |
 
+### Installation
+ **It's on the AUR, and you can also clone and build it yourself, on linux, just do make linux, and on windows(experimental), do make build, and then move it to a location on the path.**

@@ -9,7 +9,7 @@ struct Project {
   url      string
 }
 
-struct Registry {
+struct Pkglist {
   projects []Project
 }
 
@@ -76,7 +76,7 @@ fn install_package(pkg_name_imut string)
   }
 
   // Parse as JSON
-  registry := json.decode(Registry, pkglist_text.body) or {
+  registry := json.decode(Pkglist, pkglist_text.body) or {
     eprintln('Failed to parse JSON: $err')
     return
   }
@@ -122,8 +122,9 @@ fn install_package(pkg_name_imut string)
   }
   println("DB path: $db_path")
 
-  // Clone repo
-  os.system("git clone $pkg_url ${os.join_path(pkg_path, pkg_name)}")
+  // Clone the repo
+  println("Cloning $pkg_url ...")
+  os.system('git clone $pkg_url $pkg_path$pkg_name')
 
   // Parse .ghpkg file
   mut ghpkg_file := os.read_file("$pkg_path$pkg_name/.ghpkg") or {
@@ -332,7 +333,7 @@ fn list_global()
   }
 
   // Decode pkglist_raw
-  pkglist_json := json.decode(Registry, pkglist_raw.body) or {
+  pkglist_json := json.decode(Pkglist, pkglist_raw.body) or {
     eprintln("Failed to fetch pkglist: $err")
     return
   }
@@ -355,7 +356,7 @@ fn search_packages(pkg_name_imut string)
   }
 
   // Parse pkglist_raw as pkglist_json
-  pkglist_json := json.decode(Registry, pkglist_raw.body) or {
+  pkglist_json := json.decode(Pkglist, pkglist_raw.body) or {
     eprintln("Failed to decode pkglist: $err")
     return
   }
@@ -370,53 +371,6 @@ fn search_packages(pkg_name_imut string)
   // Print it 
   for pkg in results {
     println("${pkg.name} ${pkg.version} - ${pkg.url}")
-  }
-}
-
-// Update packages
-fn update()
-{
-  // Import pkglist
-  pkglist_url := "https://raw.githubusercontent.com/Frothy7650/ghpkgList/master/pkglist.json"
-  pkglist_raw := http.get(pkglist_url) or {
-    eprintln("Failed to fetch pkglist: $err")
-    return
-  }
-
-  // Parse pkglist_raw as pkglist_json
-  pkglist_json := json.decode(Registry, pkglist_raw.body) or {
-    eprintln("Failed to decode pkglist: $err")
-    return
-  }
-
-  // Join db_path together
-  mut db_path := ''
-  $if windows {
-    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
-  } $else {
-    db_path = os.join_path("/etc", "ghpkg", "db.json")
-  }
-  println("DB path: $db_path")
-
-  // Parse db as db_raw
-  db_raw := os.read_file(db_path) or {
-    eprintln("Could not open db.json: $err")
-    return
-  }
-
-  // Decode db_raw as db_json
-  db_json := json.decode([]Db, db_raw) or {
-    eprintln("Failed to decode JSON: $err")
-    return
-  }
-
-  // Search for updates
-  for pkg in pkglist_json.projects {
-    for dbpkg in db_json {
-      if pkg.name == dbpkg.name && pkg.version != dbpkg.version {
-        println('${pkg.name} version differs: ${dbpkg.version} -> ${pkg.version}')
-      }
-    }
   }
 }
 
@@ -491,5 +445,52 @@ fn check()
   os.write_file(db_path, db_raw_out) or {
     eprintln("Failed to update db.json: $err")
     return
+  }
+}
+
+// Update packages
+fn update()
+{
+  // Import pkglist
+  pkglist_url := "https://raw.githubusercontent.com/Frothy7650/ghpkgList/master/pkglist.json"
+  pkglist_raw := http.get(pkglist_url) or {
+    eprintln("Failed to fetch pkglist: $err")
+    return
+  }
+
+  // Parse pkglist_raw as pkglist_json
+  pkglist_json := json.decode(Pkglist, pkglist_raw.body) or {
+    eprintln("Failed to decode pkglist: $err")
+    return
+  }
+
+  // Join db_path together
+  mut db_path := ''
+  $if windows {
+    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+  } $else {
+    db_path = os.join_path("/etc", "ghpkg", "db.json")
+  }
+
+  // Parse db as db_raw
+  db_raw := os.read_file(db_path) or {
+    eprintln("Could not open db.json: $err")
+    return
+  }
+
+  // Decode db_raw as db_json
+  db_json := json.decode([]Db, db_raw) or {
+    eprintln("Failed to decode JSON: $err")
+    return
+  }
+
+  for installed_pkg in db_json {
+    for online_pkg in pkglist_json.projects {
+      if installed_pkg.name == online_pkg.name {
+        if installed_pkg.version != online_pkg.version {
+          println('${installed_pkg.name} has an update: ${installed_pkg.version} -> ${online_pkg.version}')
+        }
+      }
+    }
   }
 }
