@@ -103,7 +103,7 @@ fn install_package(pkg_name_imut string)
   // Determine paths
   mut pkg_path := ''
   $if windows {
-    pkg_path = os.join_path(os.temp_dir(), 'ghpkg')
+    pkg_path = os.join_path(os.temp_dir(), "ghpkg")
   } $else $if linux {
     pkg_path = '/tmp/'
   } $else $if macos {
@@ -116,24 +116,30 @@ fn install_package(pkg_name_imut string)
   // Join db_path together
   mut db_path := ''
   $if windows {
-    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+    db_path = os.join_path(os.getenv("LOCALAPPDATA"), "ghpkg", "db.json")
   } $else {
     db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
   println("DB path: $db_path")
 
-  // Clone the repo
+  // Clone the repo and setup clone_path
+  clone_path := os.join_path(pkg_path, pkg_name)
   println("Cloning $pkg_url ...")
-  os.system('git clone $pkg_url $pkg_path$pkg_name')
+  os.system('git clone $pkg_url $clone_path')
 
   // Parse .ghpkg file
-  mut ghpkg_file := os.read_file("$pkg_path$pkg_name/.ghpkg") or {
+  mut ghpkg_file := os.read_file("$clone_path/.ghpkg") or {
     eprintln('Could not read file: $err')
     return
   }
 
   // Replace $temp with actual pkg_path directory
-  ghpkg_file = ghpkg_file.replace("\$temp", pkg_path)
+  $if windows {
+    // Escape backslashes in Windows paths so JSON stays valid
+    ghpkg_file = ghpkg_file.replace("\$temp", pkg_path.replace("\\", "\\\\"))
+  } $else {
+    ghpkg_file = ghpkg_file.replace("\$temp", pkg_path)
+  }
 
   // Decode ghpkg_file as ghpkg_json
   ghpkg_json := json.decode(Ghpkg, ghpkg_file) or {
@@ -190,10 +196,14 @@ fn install_package(pkg_name_imut string)
 
   // Move or copy binary 
   $if linux || macos {
-    os.system('sudo mv $pkg_path$pkg_name/${ghpkg_json.binary_name} $bin_target')
+    os.system('sudo mv $clone_path/${ghpkg_json.binary_name} $bin_target')
   } $else $if windows {
-    os.system('copy "${pkg_path}${pkg_name}\\${pkg_name}.exe" "${bin_target}\\${pkg_name}.exe"')
+    // Construct full source path
+    src := os.join_path(clone_path, ghpkg_json.binary_name + ".exe")
+    // Copy to bin_target (already has full path)
+    os.cp(src, bin_target) or { eprintln("Failed to copy binary: $err") return }
   }
+
   println('Package built and moved to $bin_target')
 
   // Parse db.json as db_raw
@@ -252,7 +262,7 @@ fn remove_package(pkg_name_imut string)
   // Join db_path together
   mut db_path := ''
   $if windows {
-    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+    db_path = os.join_path(os.getenv("LOCALAPPDATA"), "ghpkg", "db.json")
   } $else {
     db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
@@ -285,7 +295,7 @@ fn remove_package(pkg_name_imut string)
   println("Removed entry from db.json")
 
   // Remove binary
-  os.system("rm ${bin_target}")
+  os.rm(bin_target) or { eprintln("Failed to remove binary: $err") }
   println("Removed binary from ${bin_target}")
 }
 
@@ -297,7 +307,7 @@ fn list_local()
   // Join db_path together
   mut db_path := ''
   $if windows {
-    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+    db_path = os.join_path(os.getenv("LOCALAPPDATA"), "ghpkg", "db.json")
   } $else {
     db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
@@ -389,7 +399,7 @@ fn check()
       eprintln('Could not detect LOCALAPPDATA, using C:\\Temp')
       bin_location = 'C:\\Temp\\'
     } else {
-      bin_target = os.join_path(local_appdata, 'ghpkg', 'bin')
+      bin_location = os.join_path(local_appdata, 'ghpkg', 'bin')
       // Ensure the folder exists
       os.mkdir_all(os.dir(bin_location)) or {
         eprintln('Failed to create target folder: $err')
@@ -401,7 +411,7 @@ fn check()
   // Join db_path together
   mut db_path := ''
   $if windows {
-    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+    db_path = os.join_path(os.getenv("LOCALAPPDATA"), "ghpkg", "db.json")
   } $else {
     db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
@@ -467,7 +477,7 @@ fn update()
   // Join db_path together
   mut db_path := ''
   $if windows {
-    db_path = os.join_path(os.getenv(APPDATA), ghpkg, "db.json")
+    db_path = os.join_path(os.getenv("LOCALAPPDATA"), "ghpkg", "db.json")
   } $else {
     db_path = os.join_path("/etc", "ghpkg", "db.json")
   }
