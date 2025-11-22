@@ -10,3 +10,4 @@ install: prod
 	sudo mv ./ghpkg /usr/local/bin/ghpkg
 prod:
 	v -os linux -prod main.v -o ghpkg
+	v -os windows -prod main.v -o ghpkg.exe
